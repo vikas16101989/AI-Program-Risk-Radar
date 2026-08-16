@@ -74,6 +74,12 @@ The briefing is designed for steering-committee-level communication rather than 
 
 ---
 
+## 🏗️ AI Architecture
+
+![AI Program Risk Radar Architecture](architecture.png)
+
+---
+
 ## 🏭 Automotive BIW Use Case
 
 The application is designed around a typical BIW program execution environment covering:
