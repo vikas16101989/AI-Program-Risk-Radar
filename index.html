@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Program Risk Radar — Case Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12161B; --panel:#1A2128; --panel-alt:#212A32; --border:#2A333C;
+    --text-primary:#ECEEF0; --text-secondary:#8B98A5;
+    --accent:#5B8AA6; --accent-bright:#7FB0CC;
+    --risk-low:#4FAE7A; --risk-med:#E0A33D; --risk-high:#D6553F; --risk-critical:#D6427A; --risk-neutral:#8B98A5;
+    --cat-a:#5B8AA6; --cat-b:#8E7FC7; --cat-c:#C77F63; --cat-d:#5FAE9A;
+    --font-display:'Space Grotesk', sans-serif; --font-body:'Inter', sans-serif; --font-mono:'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ background:var(--bg); color:var(--text-primary); font-family:var(--font-body); line-height:1.5; }
+  a{color:var(--accent-bright);}
+  .header{ padding:48px 40px 32px; border-bottom:1px solid var(--border); max-width:1440px; margin:0 auto; }
+  .eyebrow{ font-family:var(--font-mono); font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent-bright); margin-bottom:14px; display:flex; align-items:center; gap:10px; }
+  .eyebrow::before{ content:""; width:8px;height:8px; border-radius:50%; background:var(--risk-low); box-shadow:0 0 8px var(--risk-low); animation:pulse 2s infinite; }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  h1{ font-family:var(--font-display); font-weight:700; font-size:clamp(28px,4vw,44px); letter-spacing:-0.01em; margin-bottom:10px; }
+  .subhead{ color:var(--text-secondary); font-size:16px; max-width:760px; }
+  .layout{ max-width:1440px; margin:0 auto; padding:36px 40px 80px; display:grid; grid-template-columns:270px 1fr; gap:32px; }
+  @media(max-width:900px){ .layout{grid-template-columns:1fr; padding:28px 20px 60px;} .header{padding:36px 20px 24px;} }
+  .case-study{ display:flex; flex-direction:column; gap:20px; }
+  .case-block{ border-left:2px solid var(--border); padding-left:16px; }
+  .case-block .label{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent-bright); margin-bottom:6px; }
+  .case-block p{ font-size:13.5px; color:var(--text-secondary); }
+  .stack-list{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+  .stack-tag{ font-family:var(--font-mono); font-size:11px; padding:4px 8px; background:var(--panel-alt); border:1px solid var(--border); border-radius:3px; color:var(--text-secondary); }
+  .dashboard{ display:flex; flex-direction:column; gap:20px; min-width:0; }
+  .panel{ background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:26px; }
+  .panel-title{ font-family:var(--font-display); font-size:18px; font-weight:600; margin-bottom:4px; }
+  .panel-sub{ font-size:13px; color:var(--text-secondary); margin-bottom:18px; }
+  .summary-strip{ display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .stat{ background:var(--panel); padding:20px 22px; }
+  .stat .num{ font-family:var(--font-mono); font-size:28px; font-weight:600; }
+  .stat .lab{ font-size:12px; color:var(--text-secondary); margin-top:4px; }
+  @media(max-width:640px){.summary-strip{grid-template-columns:repeat(2,1fr);}}
+  @media(min-width:641px) and (max-width:1000px){.summary-strip{grid-template-columns:repeat(3,1fr);}}
+
+  .hero-panel{ background:linear-gradient(135deg, var(--panel) 0%, var(--panel-alt) 100%); border:1px solid var(--border); border-radius:8px; padding:32px; display:flex; flex-direction:column; gap:24px; }
+  .hero-halves{ display:flex; gap:28px; flex-wrap:wrap; }
+  .hero-half{ flex:1; min-width:260px; display:flex; align-items:center; gap:24px; }
+  .hero-divider{ width:1px; background:var(--border); align-self:stretch; min-height:100px; }
+  .hero-gauge{ flex-shrink:0; }
+  .hero-info{ flex:1; min-width:0; }
+  .hero-label{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent-bright); margin-bottom:8px; }
+  .hero-status{ font-family:var(--font-display); font-size:22px; font-weight:700; margin-bottom:8px; }
+  .hero-meta{ font-size:13px; color:var(--text-secondary); }
+  .health-bar{ display:flex; height:10px; border-radius:5px; overflow:hidden; background:var(--border); }
+  .health-bar-seg{ height:100%; }
+  .health-legend{ display:flex; gap:18px; font-family:var(--font-mono); font-size:11.5px; color:var(--text-secondary); }
+  .health-legend .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+
+  .tab-bar{ display:flex; gap:6px; overflow-x:auto; align-items:flex-end; }
+  .model-tab-wrap{ display:inline-flex; align-items:center; gap:2px; background:var(--panel-alt); border:1px solid var(--border); border-bottom:none; border-radius:6px 6px 0 0; padding-right:4px; flex-shrink:0; }
+  .model-tab-wrap.active{ background:var(--panel); border-color:var(--accent-bright); }
+  .tab-input{
+    background:transparent; border:none; color:var(--text-secondary);
+    font-family:var(--font-display); font-size:13px; font-weight:600; padding:10px 4px 10px 14px;
+    cursor:text; min-width:90px; max-width:170px;
+  }
+  .tab-input:focus{ outline:none; }
+  .model-tab-wrap.active .tab-input{ color:var(--text-primary); }
+  .tab-del{
+    background:none; border:none; color:var(--text-secondary); font-size:14px; cursor:pointer;
+    width:24px; height:24px; border-radius:3px; line-height:1; flex-shrink:0;
+  }
+  .tab-del:hover{ color:var(--risk-high); background:rgba(214,85,63,0.1); }
+  .tab-del.confirm{ background:var(--risk-high); color:#fff; font-size:10px; font-weight:700; font-family:var(--font-mono); width:auto; padding:0 8px; border-radius:4px; }
+  .tab-add{
+    background:none; border:1px dashed var(--border); color:var(--accent-bright); font-family:var(--font-mono);
+    font-size:16px; font-weight:600; padding:10px 18px; border-radius:6px 6px 0 0; cursor:pointer; align-self:flex-end;
+    flex-shrink:0;
+  }
+  .tab-add:hover{ border-color:var(--accent-bright); background:rgba(127,176,204,0.06); }
+  .line-tab-bar{ display:flex; gap:6px; overflow-x:auto; padding:12px 0 0; flex-wrap:wrap; }
+  .line-tab{
+    background:var(--panel-alt); border:1px solid var(--border); color:var(--text-secondary); font-family:var(--font-mono);
+    font-size:12px; padding:8px 13px; border-radius:5px; cursor:pointer; white-space:nowrap; transition:all 0.12s ease;
+  }
+  .line-tab:hover{ border-color:var(--accent-bright); }
+  .line-tab.active{ background:var(--accent); color:#0D1216; border-color:var(--accent); font-weight:600; }
+  .line-tab.special-tab{ border-style:dashed; }
+  .line-tab.special-tab.active{ background:var(--accent-bright); border-style:solid; }
+
+  .category-panel{ border-left:3px solid var(--accent); }
+  .category-header{ display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:16px; }
+  .category-title-wrap .cat-eyebrow{ font-family:var(--font-mono); font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-secondary); margin-bottom:4px; }
+  .category-title-wrap h3{ font-family:var(--font-display); font-size:17px; font-weight:600; }
+  .cat-risk-pill{ display:flex; align-items:center; gap:8px; }
+  .line-owner-badge{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:12px; color:var(--text-secondary); background:var(--panel-alt); border:1px solid var(--border); border-radius:5px; padding:6px 12px; margin-bottom:16px; }
+  .line-owner-badge strong{ color:var(--text-primary); font-weight:600; }
+
+  .formula-panel{ background:var(--panel-alt); border:1px solid var(--border); border-radius:6px; padding:14px 16px; margin-bottom:16px; }
+  .formula-panel summary{ cursor:pointer; font-family:var(--font-mono); font-size:12.5px; color:var(--accent-bright); font-weight:600; list-style:none; }
+  .formula-panel summary::-webkit-details-marker{ display:none; }
+  .formula-panel summary::before{ content:"▸ "; }
+  .formula-panel[open] summary::before{ content:"▾ "; }
+  .formula-body{ margin-top:12px; font-size:12.5px; color:var(--text-secondary); }
+  .formula-body table{ width:100%; margin:8px 0; min-width:0; }
+  .formula-body th, .formula-body td{ padding:5px 8px; font-size:12px; border-bottom:1px solid var(--border); }
+  .formula-body p{ margin:6px 0; }
+
+  .attn-row{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-radius:6px; border-left:3px solid transparent; gap:12px; flex-wrap:wrap; }
+  .attn-row + .attn-row{ margin-top:8px; }
+  .attn-critical{ background:rgba(214,66,122,0.08); border-left-color:var(--risk-critical); }
+  .attn-high{ background:rgba(214,85,63,0.08); border-left-color:var(--risk-high); }
+  .attn-med{ background:rgba(224,163,61,0.08); border-left-color:var(--risk-med); }
+  .attn-name{ font-weight:600; font-size:14px; }
+  .attn-meta{ font-size:12px; color:var(--text-secondary); margin-top:2px; }
+  .attn-action{ font-size:11.5px; font-family:var(--font-mono); margin-top:4px; color:var(--accent-bright); }
+  .attn-noaction{ font-size:11.5px; font-family:var(--font-mono); margin-top:4px; color:var(--risk-med); }
+  .attn-ontrack{ padding:10px 14px; color:var(--text-secondary); font-family:var(--font-mono); font-size:12.5px; margin-top:8px; }
+
+  .risk-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(140px,1fr)); gap:10px; }
+  .grid-cell{ border-radius:8px; padding:14px; }
+  .grid-cell .gname{ font-size:12.5px; font-weight:600; }
+  .grid-cell .gscore{ font-size:22px; font-weight:700; margin-top:4px; font-family:var(--font-mono); }
+  .grid-cell .gmeta{ font-size:11px; opacity:0.85; margin-top:2px; }
+  .cell-critical{ background:var(--risk-critical); color:#fff; }
+  .cell-high{ background:var(--risk-high); color:#fff; }
+  .cell-med{ background:var(--risk-med); color:#20180a; }
+  .cell-low{ background:var(--risk-low); color:#08170f; }
+
+  .risk-legend{ display:flex; gap:16px; flex-wrap:wrap; }
+  .legend-chip{ display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:6px; flex:1; min-width:180px; }
+  .legend-chip .swatch{ width:14px; height:14px; border-radius:4px; flex-shrink:0; }
+  .legend-chip .ltext .lname{ font-size:13px; font-weight:600; }
+  .legend-chip .ltext .lrange{ font-size:11.5px; color:var(--text-secondary); font-family:var(--font-mono); }
+
+  .trend-svg-wrap{ width:100%; overflow-x:auto; }
+  .trend-legend{ display:flex; gap:18px; margin-top:8px; font-family:var(--font-mono); font-size:11.5px; color:var(--text-secondary); }
+  .trend-legend .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:5px; }
+  .snapshot-btn{ font-family:var(--font-mono); font-size:12.5px; background:none; border:1px solid var(--border); color:var(--accent-bright); padding:8px 14px; border-radius:4px; cursor:pointer; }
+  .snapshot-btn:hover{ border-color:var(--accent-bright); background:rgba(127,176,204,0.06); }
+
+  .table-scroll{ overflow-x:auto; }
+  table{width:100%; border-collapse:collapse; min-width:1500px;}
+  table.access-table{ min-width:900px; }
+  thead th{ text-align:left; font-family:var(--font-mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-secondary); padding:0 8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  tbody td{ padding:11px 8px; border-bottom:1px solid var(--border); font-size:13.5px; vertical-align:middle; }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--panel-alt);}
+  .stage-num{ font-family:var(--font-mono); color:var(--text-secondary); font-size:12px; margin-right:6px; }
+  .mono{font-family:var(--font-mono); font-size:13px;}
+  .cascade-flag{ font-family:var(--font-mono); font-size:11px; color:var(--risk-high); margin-left:6px; white-space:nowrap; }
+  .risk-badge{ display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:12px; padding:4px 9px; border-radius:3px; font-weight:500; white-space:nowrap; }
+  .risk-low-bg{background:rgba(79,174,122,0.14); color:var(--risk-low);}
+  .risk-med-bg{background:rgba(224,163,61,0.14); color:var(--risk-med);}
+  .risk-high-bg{background:rgba(214,85,63,0.14); color:var(--risk-high);}
+  .risk-critical-bg{background:rgba(214,66,122,0.16); color:var(--risk-critical);}
+  .risk-neutral-bg{background:rgba(139,152,165,0.14); color:var(--risk-neutral);}
+  .gauge-wrap{display:flex; align-items:center; gap:8px; cursor:pointer;}
+  .gauge-wrap:hover{ opacity:0.85; }
+  .gauge svg{display:block;}
+  .line-name-tag{ font-family:var(--font-mono); font-size:11px; padding:3px 7px; border:1px solid var(--border); border-radius:3px; color:var(--text-secondary); }
+  .breakdown-row td{ background:var(--panel-alt); padding:14px 18px; }
+  .breakdown-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:10px; font-size:12px; }
+  .breakdown-item .bl{ color:var(--text-secondary); font-family:var(--font-mono); font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; }
+  .breakdown-item .bv{ font-family:var(--font-mono); font-size:14px; font-weight:600; margin-top:2px; }
+
+  .field-input{
+    background:var(--panel-alt); border:1px solid var(--border); color:var(--text-primary);
+    font-family:var(--font-body); font-size:13px; padding:6px 8px; border-radius:4px; width:100%;
+    transition:border-color 0.15s ease;
+  }
+  .field-input:focus{ outline:none; border-color:var(--accent-bright); }
+  input.field-input[type="date"]{ font-family:var(--font-mono); font-size:12.5px; }
+  input.field-input[type="number"]{ font-family:var(--font-mono); width:60px; }
+  select.field-input{ cursor:pointer; }
+  td.col-name{min-width:200px;} td.col-owner{min-width:150px;} td.col-date{min-width:130px;} td.col-action{min-width:180px;}
+  .pct-wrap{ display:flex; align-items:center; gap:4px; }
+
+  .remove-btn{
+    background:none; border:1px solid var(--border); color:var(--text-secondary);
+    width:26px; height:26px; border-radius:4px; cursor:pointer; font-size:14px; line-height:1;
+    transition:all 0.15s ease;
+  }
+  .remove-btn:hover{ border-color:var(--risk-high); color:var(--risk-high); }
+
+  .action-link{ display:inline-block; font-family:var(--font-mono); font-size:11px; padding:5px 9px; border:1px solid var(--border); border-radius:4px; color:var(--accent-bright); text-decoration:none; margin-right:6px; }
+  .action-link:hover{ border-color:var(--accent-bright); background:rgba(127,176,204,0.08); }
+  .action-link.disabled{ color:var(--text-secondary); opacity:0.45; cursor:not-allowed; pointer-events:none; }
+
+  .add-row-wrap{ padding-top:12px; }
+  .add-row-btn{
+    font-family:var(--font-mono); font-size:12.5px; background:none; border:1px dashed var(--border);
+    color:var(--accent-bright); padding:9px 14px; border-radius:4px; cursor:pointer; width:100%;
+    transition:all 0.15s ease;
+  }
+  .add-row-btn:hover{ border-color:var(--accent-bright); background:rgba(127,176,204,0.06); }
+
+  .briefing-header{ display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px; margin-bottom:18px; }
+  .gen-btn{ font-family:var(--font-mono); font-size:13px; background:var(--accent); color:#0D1216; border:none; padding:11px 20px; border-radius:4px; cursor:pointer; font-weight:600; letter-spacing:0.02em; transition:background 0.15s ease; white-space:nowrap; }
+  .gen-btn:hover{background:var(--accent-bright);}
+  .gen-btn:disabled{background:var(--border); color:var(--text-secondary); cursor:not-allowed;}
+  .briefing-placeholder{ color:var(--text-secondary); font-size:14px; padding:20px 0; border-top:1px dashed var(--border); }
+  .briefing-content h4{ font-family:var(--font-display); font-size:14px; color:var(--accent-bright); margin:18px 0 8px; text-transform:uppercase; letter-spacing:0.05em; }
+  .briefing-content h4:first-child{margin-top:0;}
+  .briefing-content ol, .briefing-content ul{padding-left:20px; margin-top:6px;}
+  .briefing-content li{margin-bottom:6px; color:var(--text-secondary);}
+  .briefing-content p{color:var(--text-secondary); margin-bottom:8px;}
+  .loading-line{ display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:13px; color:var(--text-secondary); padding:20px 0; }
+  .spinner{ width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--accent-bright); border-radius:50%; animation:spin 0.7s linear infinite; }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .error-line{ color:var(--risk-high); font-size:13px; font-family:var(--font-mono); padding:12px 0; }
+  footer{ text-align:center; color:var(--text-secondary); font-size:12px; padding:0 20px 40px; font-family:var(--font-mono); }
+  #toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--panel-alt); border:1px solid var(--border); color:var(--text-primary); padding:10px 18px; border-radius:6px; font-family:var(--font-mono); font-size:13px; z-index:9999; opacity:0; transition:opacity 0.2s ease; pointer-events:none; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">Case Study 01 — Program Risk Intelligence</div>
+  <h1>AI Program Risk Radar</h1>
+  <p class="subhead">A multi-model program tracker: every model auto-seeds all 12 BIW lines, each line runs a fully editable, explainable 4-phase cascading risk engine with corrective-action tracking, and an executive Dashboard shows both overall program health and the single most critical line side by side. AI briefings are generated through a backend proxy, never a client-exposed key.</p>
+</div>
+
+<div class="layout">
+
+  <aside class="case-study">
+    <div class="case-block">
+      <div class="label">Problem</div>
+      <p>A real program is a model with 12 parallel BIW lines. Leadership needs both "how healthy is the whole model" and "what's the worst thing happening right now" — those are two different numbers, not one.</p>
+    </div>
+    <div class="case-block">
+      <div class="label">Structure</div>
+      <p><strong>Model</strong> → <strong>Line</strong> (12 by default) → <strong>Phase</strong> (4 gates) → <strong>Gate</strong> (fully editable, with its own corrective action and due date). Every score is click-to-explain, not a black box.</p>
+    </div>
+    <div class="case-block">
+      <div class="label">Production architecture</div>
+      <p>The browser never talks to Claude directly. It calls a backend function, which holds the API key server-side. See the deployment note for the companion Netlify function.</p>
+    </div>
+    <div class="case-block">
+      <div class="label">Stack</div>
+      <div class="stack-list">
+        <span class="stack-tag">JavaScript</span>
+        <span class="stack-tag">Netlify Functions</span>
+        <span class="stack-tag">Claude API</span>
+        <span class="stack-tag">Cascade Rule Engine</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="dashboard">
+    <div class="tab-bar" id="modelTabs"></div>
+    <div class="line-tab-bar" id="lineTabs"></div>
+    <div id="viewArea"></div>
+  </main>
+</div>
+
+<footer>Built by Vikas Verma · Portfolio Project 01 · AI narrative calls Claude via a backend proxy, never a client-side key</footer>
+<div id="toast"></div>
+
+<script>
+/* ---------- config ---------- */
+const BACKEND_ENDPOINT = '/.netlify/functions/generate-briefing';
+
+/* ---------- constants ---------- */
+const DEFAULT_LINE_NAMES = ["Front Under Body","Main Floor","Rear Under Body","Under Body","Side Body","Main Body","Front Door LH","Front Door RH","Rear Door LH","Rear Door RH","Hood","Backdoor"];
+const CASCADE_FACTOR = 0.3;
+const MODEL_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ROLE_OPTIONS = ["Program Manager","Line In-Charge","Viewer"];
+const DELAY_THRESHOLDS = { biw:5, commercial:5, design:3, install:2 };
+const SNAPSHOT_KEY = 'aiRiskRadarSnapshots';
+
+function phaseTemplates(){
+  return [
+    { key:"biw", color:"var(--cat-d)", eyebrow:"Phase 1", title:"BIW Panel Build Study" },
+    { key:"commercial", color:"var(--cat-a)", eyebrow:"Phase 2", title:"Commercial Plan — Till Handover to Supplier" },
+    { key:"design", color:"var(--cat-b)", eyebrow:"Phase 3", title:"Design Start to Buy-off Completion" },
+    { key:"install", color:"var(--cat-c)", eyebrow:"Phase 4", title:"Line Installation, Fugai Closure, Trials & Production Handover" },
+  ];
+}
+
+function buildStandardGates(profile){
+  const t = phaseTemplates();
+  if(profile === 'clean'){
+    return [
+      { ...t[0], gates:[ {name:"BIW Panel Build Study", owner:"Internal Engg.", planned:"2026-05-01", forecast:"2026-05-01", ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:""} ]},
+      { ...t[1], gates:[
+        {name:"Line Spec Document & Price Bid", owner:"Commercial Team", planned:"2026-05-10", forecast:"2026-05-10", ng:0, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+        {name:"Maker Discussion — Scope Alignment", owner:"Maker", planned:"2026-05-20", forecast:"2026-05-20", ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:""},
+        {name:"Price Benchmarking & Cost Estimate", owner:"Internal Costing", planned:"2026-05-25", forecast:"2026-05-25", ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:""},
+      ]},
+      { ...t[2], gates:[
+        {name:"Design Review & NG Point Closure", owner:"Maker", planned:"2026-06-05", forecast:"2026-06-05", ng:0, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+        {name:"Manufacturing & Assembly Tracking (Buy-off)", owner:"Maker", planned:"2026-06-25", forecast:"2026-06-25", ng:0, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+      ]},
+      { ...t[3], gates:[
+        {name:"Line Installation Planning", owner:"Internal Install Team", planned:"2026-07-15", forecast:"2026-07-15", ng:0, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+        {name:"Fugai Point Closure — Supplier", owner:"Maker", planned:"2026-07-25", forecast:"2026-07-25", ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:""},
+        {name:"Dry Run & Trial Panel Building", owner:"Internal Trial Team", planned:"2026-08-01", forecast:"2026-08-01", ng:0, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+        {name:"Handover to Production", owner:"Production Team", planned:"2026-08-10", forecast:"2026-08-10", ng:0, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+      ]},
+    ];
+  }
+  return [
+    { ...t[0], gates:[ {name:"BIW Panel Build Study", owner:"Internal Engg.", planned:"2026-05-01", forecast:"2026-05-03", ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:""} ]},
+    { ...t[1], gates:[
+      {name:"Line Spec Document & Price Bid", owner:"Commercial Team", planned:"2026-05-10", forecast:"2026-05-18", ng:0, ngPlanned:0, readiness:60, critical:true, actionPlan:"", actionDue:""},
+      {name:"Maker Discussion — Scope Alignment", owner:"ABC Tooling Pvt. Ltd.", planned:"2026-05-20", forecast:"2026-05-20", ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:""},
+      {name:"Price Benchmarking & Cost Estimate", owner:"Internal Costing", planned:"2026-05-25", forecast:"2026-05-27", ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:""},
+    ]},
+    { ...t[2], gates:[
+      {name:"Design Review & NG Point Closure", owner:"ABC Tooling Pvt. Ltd.", planned:"2026-06-05", forecast:"2026-06-20", ng:6, ngPlanned:6, readiness:60, critical:true, actionPlan:"Escalated NG closure list to ABC Tooling quality head; daily follow-up call scheduled", actionDue:"2026-06-24"},
+      {name:"Manufacturing & Assembly Tracking (Buy-off)", owner:"ABC Tooling Pvt. Ltd.", planned:"2026-06-25", forecast:"2026-07-10", ng:4, ngPlanned:4, readiness:60, critical:true, actionPlan:"", actionDue:""},
+    ]},
+    { ...t[3], gates:[
+      {name:"Line Installation Planning", owner:"Internal Install Team", planned:"2026-07-15", forecast:"2026-07-22", ng:2, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+      {name:"Fugai Point Closure — Supplier", owner:"ABC Tooling Pvt. Ltd.", planned:"2026-07-25", forecast:"2026-07-28", ng:3, ngPlanned:0, readiness:60, critical:false, actionPlan:"", actionDue:""},
+      {name:"Dry Run & Trial Panel Building", owner:"Internal Trial Team", planned:"2026-08-01", forecast:"2026-08-05", ng:1, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+      {name:"Handover to Production", owner:"Production Team", planned:"2026-08-10", forecast:"2026-08-10", ng:0, ngPlanned:0, readiness:100, critical:true, actionPlan:"", actionDue:""},
+    ]},
+  ];
+}
+
+const TIER_HIGH = ["Main Body"];
+const TIER_MEDIUM_OVERRIDES = {
+  "Front Door LH": { cat:"commercial", gateIdx:0, planned:"2026-05-10", forecast:"2026-05-16", ng:2, readiness:75, actionPlan:"Following up with commercial team on price bid sign-off", actionDue:"2026-05-22" },
+  "Rear Door RH": { cat:"install", gateIdx:1, planned:"2026-07-25", forecast:"2026-07-31", ng:2, readiness:75, actionPlan:"", actionDue:"" },
+  "Side Body": { cat:"design", gateIdx:0, planned:"2026-06-05", forecast:"2026-06-11", ng:2, readiness:75, actionPlan:"Design review comments shared with maker; revised drawings expected", actionDue:"2026-06-18" },
+};
+
+function seededVariance(str, mod){
+  let h = 0;
+  for(let i=0;i<str.length;i++) h = (h*31 + str.charCodeAt(i)) % 997;
+  return h % mod;
+}
+
+function buildMediumGates(name){
+  const categories = buildStandardGates('clean');
+  const o = TIER_MEDIUM_OVERRIDES[name];
+  if(o){
+    const cat = categories.find(c => c.key === o.cat);
+    const gate = cat.gates[o.gateIdx];
+    gate.planned = o.planned; gate.forecast = o.forecast; gate.ng = o.ng; gate.readiness = o.readiness;
+    gate.actionPlan = o.actionPlan; gate.actionDue = o.actionDue;
+  }
+  return categories;
+}
+
+function applyLowTierVariety(categories, lineName){
+  categories.forEach(cat => {
+    cat.gates.forEach(g => {
+      const aheadDays = seededVariance(lineName + g.name + 'd', 4);
+      if(aheadDays > 0){
+        const d = new Date(g.planned);
+        d.setDate(d.getDate() - aheadDays);
+        g.forecast = d.toISOString().slice(0,10);
+      }
+      if(seededVariance(lineName + g.name + 'n', 6) === 0) g.ng = 1;
+      if(seededVariance(lineName + g.name + 'r', 6) === 0) g.readiness = 90;
+    });
+  });
+  return categories;
+}
+
+function createLine(name){
+  const id = 'line_' + name.toLowerCase().replace(/[^a-z0-9]+/g,'_') + '_' + Math.random().toString(36).slice(2,7);
+  let categories;
+  if(TIER_HIGH.includes(name)) categories = buildStandardGates('risky');
+  else if(TIER_MEDIUM_OVERRIDES[name]) categories = buildMediumGates(name);
+  else categories = applyLowTierVariety(buildStandardGates('clean'), name);
+  return { id, name, categories };
+}
+
+function createModel(name){
+  const id = 'model_' + Math.random().toString(36).slice(2,8);
+  return {
+    id, name,
+    lines: DEFAULT_LINE_NAMES.map(n => createLine(n)),
+    access: [
+      { name:"Vikas Verma", role:"Program Manager", scope:"All Lines", email:"" },
+      { name:"", role:"Line In-Charge", scope:"Main Body", email:"" }
+    ]
+  };
+}
+
+/* ---------- state ---------- */
+let modelLetterIndex = 0;
+let models = [ createModel("Model A") ];
+let activeModelId = models[0].id;
+let activeLineId = 'dashboard';
+let pendingDeleteId = null;
+let expandedGateKeys = new Set();
+
+function nextModelName(){ modelLetterIndex++; return "Model " + MODEL_LETTERS[modelLetterIndex % MODEL_LETTERS.length]; }
+function getActiveModel(){ return models.find(m => m.id === activeModelId); }
+function getActiveLine(){
+  const model = getActiveModel();
+  if(!model || activeLineId === 'dashboard' || activeLineId === 'access') return null;
+  return model.lines.find(l => l.id === activeLineId);
+}
+function escapeAttr(str){ return (str||'').replace(/"/g,'&quot;'); }
+function getLineOwner(model, lineName){
+  const specific = model.access.find(p => p.scope === lineName && p.name);
+  if(specific) return { name: specific.name, role: specific.role };
+  const pm = model.access.find(p => p.scope === 'All Lines' && p.role === 'Program Manager' && p.name);
+  if(pm) return { name: pm.name, role: pm.role };
+  return null;
+}
+function showToast(msg){
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 2500);
+}
+
+/* ---------- risk engine ---------- */
+function daysBetween(a,b){ if(!a||!b) return 0; return Math.round((new Date(b) - new Date(a)) / 86400000); }
+function readinessScore(pct){ const p = Math.max(0,Math.min(100, pct===undefined||pct===null||pct==='' ? 100 : pct)); return Math.round((100-p)*0.3); }
+function riskLevel(score){
+  if(score >= 81) return {label:"Critical", cls:"risk-critical"};
+  if(score >= 61) return {label:"High", cls:"risk-high"};
+  if(score >= 31) return {label:"Medium", cls:"risk-med"};
+  return {label:"Low", cls:"risk-low"};
+}
+function scheduleInfo(planned, forecast){
+  const diff = daysBetween(planned, forecast);
+  if(diff > 0) return { text:`${diff}d delay`, cls:"risk-high" };
+  if(diff < 0) return { text:`${Math.abs(diff)}d ahead`, cls:"risk-low" };
+  return { text:"On schedule", cls:"risk-neutral" };
+}
+function gaugeSVG(score, colorVar, size=40){
+  const radius = size===40?16:14, circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.max(0,Math.min(score,100))/100) * circumference;
+  return `
+  <svg width="${size}" height="${size}" viewBox="0 0 40 40" class="gauge">
+    <circle cx="20" cy="20" r="${radius}" fill="none" stroke="var(--border)" stroke-width="4"/>
+    <circle cx="20" cy="20" r="${radius}" fill="none" stroke="${colorVar}" stroke-width="4"
+      stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+      stroke-linecap="round" transform="rotate(-90 20 20)"/>
+    <text x="20" y="24" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--text-primary)">${Math.round(score)}</text>
+  </svg>`;
+}
+function heroGaugeSVG(score, colorVar, size=130){
+  const radius = 50, circumference = 2 * Math.PI * radius;
+  const offset = circumference - (Math.max(0,Math.min(score,100))/100) * circumference;
+  return `
+  <svg width="${size}" height="${size}" viewBox="0 0 124 124">
+    <circle cx="62" cy="62" r="${radius}" fill="none" stroke="var(--border)" stroke-width="9"/>
+    <circle cx="62" cy="62" r="${radius}" fill="none" stroke="${colorVar}" stroke-width="9"
+      stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 62 62)"/>
+    <text x="62" y="58" text-anchor="middle" font-family="Space Grotesk" font-size="30" font-weight="700" fill="var(--text-primary)">${Math.round(score)}</text>
+    <text x="62" y="80" text-anchor="middle" font-family="IBM Plex Mono" font-size="10" fill="var(--text-secondary)">/ 100</text>
+  </svg>`;
+}
+const colorMap = { "risk-critical":"var(--risk-critical)", "risk-high":"var(--risk-high)", "risk-med":"var(--risk-med)", "risk-low":"var(--risk-low)", "risk-neutral":"var(--risk-neutral)" };
+const cellClassMap = { "risk-critical":"cell-critical", "risk-high":"cell-high", "risk-med":"cell-med", "risk-low":"cell-low" };
+
+function computeCascadeFor(categories){
+  let prev = 0;
+  categories.forEach(cat => {
+    const threshold = DELAY_THRESHOLDS[cat.key] || 0;
+    cat.gates.forEach(g => {
+      const rawSlip = daysBetween(g.planned, g.forecast);
+      const delayDays = Math.max(rawSlip, 0);
+      const slipCounts = delayDays > threshold;
+      const slipScore = slipCounts ? Math.min(delayDays * 3, 30) : 0;
+      const ngForRisk = (g.ngPlanned && g.ngPlanned !== 0) ? g.ngPlanned : (g.ng || 0);
+      const ngScore = Math.min(ngForRisk * 4, 30);
+      const readyScore = readinessScore(g.readiness);
+      const criticalWeight = g.critical ? 10 : 0;
+      const ownScore = Math.min(slipScore + ngScore + readyScore + criticalWeight, 100);
+      const inherited = Math.round(prev * CASCADE_FACTOR);
+      const score = Math.min(ownScore + inherited, 100);
+      g._slip = rawSlip; g._slipCounts = slipCounts; g._slipThreshold = threshold; g._slipScore = slipScore;
+      g._ngForRisk = ngForRisk; g._ngScore = ngScore; g._readyScore = readyScore; g._criticalWeight = criticalWeight;
+      g._ownScore = ownScore; g._inherited = inherited; g._score = score; g._level = riskLevel(score);
+      prev = score;
+    });
+  });
+}
+function computeLineRollup(line){
+  computeCascadeFor(line.categories);
+  let worstPhase = null, worstScore = -1, worstGate = null;
+  line.categories.forEach(cat => {
+    cat.gates.forEach(g => {
+      if(g._score > worstScore){ worstScore = g._score; worstPhase = cat.title; worstGate = g; }
+    });
+  });
+  const totalNG = line.categories.flatMap(c => c.gates).reduce((a,g)=>a+(g.ng||0),0);
+  return { score: worstScore, level: riskLevel(worstScore), worstPhase, worstGate, totalNG };
+}
+
+/* ---------- snapshots (risk trend) ---------- */
+function loadSnapshots(){
+  try { return JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || '[]'); } catch(e){ return []; }
+}
+function saveSnapshotsToStorage(snaps){
+  try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snaps)); } catch(e){}
+}
+function saveSnapshot(){
+  const model = getActiveModel();
+  const rollups = model.lines.map(line => computeLineRollup(line));
+  const overall = Math.round(rollups.reduce((a,r)=>a+r.score,0) / rollups.length);
+  const worst = rollups.reduce((a,r)=> r.score > a.score ? r : a, rollups[0]);
+  const snaps = loadSnapshots();
+  snaps.push({ ts: Date.now(), modelName: model.name, overall, worst: worst.score });
+  saveSnapshotsToStorage(snaps);
+  showToast('Snapshot saved.');
+  renderViewArea();
+}
+function trendSVG(snaps){
+  const w = 560, h = 140, pad = 24;
+  const n = snaps.length;
+  const xFor = i => pad + (i/(n-1||1)) * (w - pad*2);
+  const yFor = v => h - pad - (v/100) * (h - pad*2);
+  const overallPts = snaps.map((s,i) => `${xFor(i)},${yFor(s.overall)}`).join(' ');
+  const worstPts = snaps.map((s,i) => `${xFor(i)},${yFor(s.worst)}`).join(' ');
+  const gridLines = [0,25,55,100].map(v => `<line x1="${pad}" y1="${yFor(v)}" x2="${w-pad}" y2="${yFor(v)}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3"/>`).join('');
+  return `
+  <svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;">
+    ${gridLines}
+    <polyline points="${overallPts}" fill="none" stroke="var(--accent-bright)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="${worstPts}" fill="none" stroke="var(--risk-high)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${snaps.map((s,i) => `<circle cx="${xFor(i)}" cy="${yFor(s.overall)}" r="3" fill="var(--accent-bright)"/><circle cx="${xFor(i)}" cy="${yFor(s.worst)}" r="3" fill="var(--risk-high)"/>`).join('')}
+  </svg>`;
+}
+/* ---------- top-level render ---------- */
+function renderApp(){ renderModelTabs(); renderLineTabs(); renderViewArea(); }
+
+function renderModelTabs(){
+  const container = document.getElementById('modelTabs');
+  container.innerHTML = models.map(m => `
+    <div class="model-tab-wrap ${m.id===activeModelId?'active':''}">
+      <input class="tab-input" data-action="rename-model" data-model-id="${m.id}" value="${escapeAttr(m.name)}">
+      ${models.length > 1 ? (pendingDeleteId === m.id
+        ? `<button class="tab-del confirm" data-action="delete-model" data-model-id="${m.id}" title="Click again to confirm">Delete?</button>`
+        : `<button class="tab-del" data-action="delete-model" data-model-id="${m.id}" title="Delete model">×</button>`) : ''}
+    </div>
+  `).join('') + `<button class="tab-add" data-action="add-model" title="Add model">+</button>`;
+}
+function selectModel(id){
+  pendingDeleteId = null;
+  if(id === activeModelId){ renderModelTabs(); return; }
+  activeModelId = id; activeLineId = 'dashboard'; renderApp();
+}
+function renameModel(id, value){ const m = models.find(x => x.id === id); if(m) m.name = value; }
+function addModel(){
+  pendingDeleteId = null;
+  const name = nextModelName();
+  const m = createModel(name);
+  models.push(m);
+  activeModelId = m.id;
+  activeLineId = 'dashboard';
+  renderApp();
+}
+function deleteModel(id){
+  if(models.length <= 1){ showToast('At least one model must remain.'); return; }
+  if(pendingDeleteId !== id){ pendingDeleteId = id; renderModelTabs(); return; }
+  const deletedName = models.find(x => x.id === id).name;
+  models = models.filter(x => x.id !== id);
+  pendingDeleteId = null;
+  if(activeModelId === id){ activeModelId = models[0].id; activeLineId = 'dashboard'; }
+  renderApp();
+  showToast(`${deletedName} deleted.`);
+}
+
+function renderLineTabs(){
+  const model = getActiveModel();
+  const container = document.getElementById('lineTabs');
+  const dashboardBtn = `<button class="line-tab special-tab ${activeLineId==='dashboard'?'active':''}" data-action="select-line" data-line-id="dashboard">Dashboard</button>`;
+  const lineBtns = model.lines.map(l => `<button class="line-tab ${activeLineId===l.id?'active':''}" data-action="select-line" data-line-id="${l.id}">${l.name}</button>`).join('');
+  const accessBtn = `<button class="line-tab special-tab ${activeLineId==='access'?'active':''}" data-action="select-line" data-line-id="access">Access</button>`;
+  container.innerHTML = dashboardBtn + lineBtns + accessBtn;
+}
+function selectLine(id){ activeLineId = id; renderViewArea(); renderLineTabs(); }
+
+function renderViewArea(){
+  const model = getActiveModel();
+  const viewArea = document.getElementById('viewArea');
+  if(activeLineId === 'dashboard'){
+    viewArea.innerHTML = modelDashboardHTML(model);
+  } else if(activeLineId === 'access'){
+    viewArea.innerHTML = accessHTML(model);
+  } else {
+    const line = model.lines.find(l => l.id === activeLineId);
+    viewArea.innerHTML = lineViewHTML(model, line);
+    computeCascadeFor(line.categories);
+    updateLineDisplays(line);
+  }
+}
+
+/* ---------- model dashboard ---------- */
+function modelDashboardHTML(model){
+  const rollups = model.lines.map(line => ({ line, rollup: computeLineRollup(line) }));
+  const critical = rollups.filter(r => r.rollup.level.label === 'Critical').length;
+  const high = rollups.filter(r => r.rollup.level.label === 'High').length;
+  const med = rollups.filter(r => r.rollup.level.label === 'Medium').length;
+  const low = rollups.filter(r => r.rollup.level.label === 'Low').length;
+  const totalNG = rollups.reduce((a,r) => a + r.rollup.totalNG, 0);
+  const total = model.lines.length;
+
+  const overallAvgScore = Math.round(rollups.reduce((a,r)=>a+r.rollup.score,0) / total);
+  const overallAvgLevel = riskLevel(overallAvgScore);
+  const overallStatusText = overallAvgLevel.label === 'Critical' ? 'Program At Severe Risk'
+    : overallAvgLevel.label === 'High' ? 'Program At Risk'
+    : overallAvgLevel.label === 'Medium' ? 'Program Needs Monitoring'
+    : 'Program On Track';
+
+  const sortedByRisk = [...rollups].sort((a,b) => b.rollup.score - a.rollup.score);
+  const worstScore = sortedByRisk[0].rollup.score;
+  const worstLevel = riskLevel(worstScore);
+  const worstLineName = sortedByRisk[0].line.name;
+  const worstPhase = sortedByRisk[0].rollup.worstPhase;
+
+  const criticalPct = total ? (critical/total*100) : 0;
+  const highPct = total ? (high/total*100) : 0;
+  const medPct = total ? (med/total*100) : 0;
+  const lowPct = total ? (low/total*100) : 0;
+
+  const attention = sortedByRisk.filter(r => r.rollup.level.label !== 'Low');
+  const onTrackCount = total - attention.length;
+  const attentionRowsHTML = attention.length ? attention.map(({line, rollup}) => {
+    const owner = getLineOwner(model, line.name);
+    const rowCls = rollup.level.cls === 'risk-critical' ? 'attn-critical' : (rollup.level.cls === 'risk-high' ? 'attn-high' : 'attn-med');
+    const g = rollup.worstGate;
+    const actionHTML = g && g.actionPlan
+      ? `<div class="attn-action">Action: ${g.actionPlan}${g.actionDue ? ' · Due ' + g.actionDue : ''}</div>`
+      : `<div class="attn-noaction">No action logged</div>`;
+    return `
+      <div class="attn-row ${rowCls}">
+        <div>
+          <div class="attn-name">${line.name}</div>
+          <div class="attn-meta">${rollup.worstPhase} · Owner: ${owner ? owner.name : 'Unassigned'}</div>
+          ${actionHTML}
+        </div>
+        <span class="risk-badge ${rollup.level.cls}-bg">${rollup.level.label} · ${Math.round(rollup.score)}</span>
+      </div>`;
+  }).join('') : `<div class="attn-row" style="background:var(--panel-alt); border-left-color:var(--risk-low);"><div class="attn-name">All lines on track</div></div>`;
+
+  const allGates = [];
+  model.lines.forEach(line => line.categories.forEach(cat => cat.gates.forEach(g => allGates.push({ lineName: line.name, phase: cat.title, gate: g }))));
+  const topRisks = allGates.sort((a,b) => b.gate._score - a.gate._score).slice(0,5);
+  const topRiskRowsHTML = topRisks.map(t => {
+    const rowCls = t.gate._level.cls === 'risk-critical' ? 'attn-critical' : (t.gate._level.cls === 'risk-high' ? 'attn-high' : (t.gate._level.cls === 'risk-med' ? 'attn-med' : ''));
+    const style = t.gate._level.cls === 'risk-low' ? 'background:var(--panel-alt); border-left-color:var(--border);' : '';
+    const actionHTML = t.gate.actionPlan
+      ? `<div class="attn-action">Action: ${t.gate.actionPlan}${t.gate.actionDue ? ' · Due ' + t.gate.actionDue : ''}</div>`
+      : (t.gate._level.label !== 'Low' ? `<div class="attn-noaction">No action logged</div>` : '');
+    return `
+      <div class="attn-row ${rowCls}" style="${style}">
+        <div>
+          <div class="attn-name">${t.gate.name}</div>
+          <div class="attn-meta"><span class="line-name-tag">${t.lineName}</span> · ${t.phase}</div>
+          ${actionHTML}
+        </div>
+        <span class="risk-badge ${t.gate._level.cls}-bg">${t.gate._level.label} · ${Math.round(t.gate._score)}</span>
+      </div>`;
+  }).join('');
+
+  const gridHTML = rollups.map(({line, rollup}) => `
+    <div class="grid-cell ${cellClassMap[rollup.level.cls]}">
+      <div class="gname">${line.name}</div>
+      <div class="gscore">${Math.round(rollup.score)}</div>
+      <div class="gmeta">${rollup.totalNG} open pt${rollup.totalNG===1?'':'s'}</div>
+    </div>
+  `).join('');
+
+  const snaps = loadSnapshots().filter(s => s.modelName === model.name);
+  const trendPanel = snaps.length >= 2
+    ? `<div class="trend-svg-wrap">${trendSVG(snaps)}</div>
+       <div class="trend-legend">
+         <span><span class="dot" style="background:var(--accent-bright)"></span>Overall program score</span>
+         <span><span class="dot" style="background:var(--risk-high)"></span>Most critical line</span>
+       </div>`
+    : `<p style="font-size:13px; color:var(--text-secondary);">Save at least 2 snapshots to see a trend line. You have ${snaps.length} saved for ${model.name}.</p>`;
+
+  return `
+    <div class="hero-panel">
+      <div class="hero-halves">
+        <div class="hero-half">
+          <div class="hero-gauge">${heroGaugeSVG(overallAvgScore, colorMap[overallAvgLevel.cls])}</div>
+          <div class="hero-info">
+            <div class="hero-label">Overall Program Score</div>
+            <div class="hero-status" style="color:${colorMap[overallAvgLevel.cls]}">${overallStatusText}</div>
+            <div class="hero-meta">Average across all ${total} lines · ${totalNG} open point${totalNG===1?'':'s'} total</div>
+          </div>
+        </div>
+        <div class="hero-divider"></div>
+        <div class="hero-half">
+          <div class="hero-gauge">${heroGaugeSVG(worstScore, colorMap[worstLevel.cls])}</div>
+          <div class="hero-info">
+            <div class="hero-label">Most Critical Line</div>
+            <div class="hero-status" style="color:${colorMap[worstLevel.cls]}">${worstLineName}</div>
+            <div class="hero-meta">${worstLevel.label} risk · bottleneck: ${worstPhase}</div>
+          </div>
+        </div>
+      </div>
+      <div class="health-bar">
+        <div class="health-bar-seg" style="width:${criticalPct}%; background:var(--risk-critical);"></div>
+        <div class="health-bar-seg" style="width:${highPct}%; background:var(--risk-high);"></div>
+        <div class="health-bar-seg" style="width:${medPct}%; background:var(--risk-med);"></div>
+        <div class="health-bar-seg" style="width:${lowPct}%; background:var(--risk-low);"></div>
+      </div>
+      <div class="health-legend">
+        <span><span class="dot" style="background:var(--risk-critical)"></span>${critical} Critical</span>
+        <span><span class="dot" style="background:var(--risk-high)"></span>${high} High</span>
+        <span><span class="dot" style="background:var(--risk-med)"></span>${med} Medium</span>
+        <span><span class="dot" style="background:var(--risk-low)"></span>${low} On track</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">What the colors mean</div>
+      <div class="panel-sub">Every score, badge, and grid cell on this dashboard uses the same scale.</div>
+      <div class="risk-legend">
+        <div class="legend-chip" style="background:rgba(214,66,122,0.1);">
+          <span class="swatch" style="background:var(--risk-critical);"></span>
+          <div class="ltext"><div class="lname" style="color:var(--risk-critical);">Critical</div><div class="lrange">Score 81–100 · escalate immediately</div></div>
+        </div>
+        <div class="legend-chip" style="background:rgba(214,85,63,0.1);">
+          <span class="swatch" style="background:var(--risk-high);"></span>
+          <div class="ltext"><div class="lname" style="color:var(--risk-high);">High</div><div class="lrange">Score 61–80 · needs immediate attention</div></div>
+        </div>
+        <div class="legend-chip" style="background:rgba(224,163,61,0.1);">
+          <span class="swatch" style="background:var(--risk-med);"></span>
+          <div class="ltext"><div class="lname" style="color:var(--risk-med);">Medium</div><div class="lrange">Score 31–60 · monitor closely</div></div>
+        </div>
+        <div class="legend-chip" style="background:rgba(79,174,122,0.1);">
+          <span class="swatch" style="background:var(--risk-low);"></span>
+          <div class="ltext"><div class="lname" style="color:var(--risk-low);">Low</div><div class="lrange">Score 0–30 · on track</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="briefing-header">
+        <div>
+          <div class="panel-title">Risk trend</div>
+          <div class="panel-sub" style="margin-bottom:0;">Overall program score vs. the most critical line, over saved snapshots</div>
+        </div>
+        <button class="snapshot-btn" data-action="save-snapshot">Save snapshot</button>
+      </div>
+      ${trendPanel}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Lines needing attention</div>
+      <div class="panel-sub">Only lines that are Medium or High risk — each with its logged corrective action, if any.</div>
+      ${attentionRowsHTML}
+      ${onTrackCount > 0 ? `<div class="attn-ontrack">${onTrackCount} line${onTrackCount===1?'':'s'} on track</div>` : ''}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Top 5 risks to consider</div>
+      <div class="panel-sub">The single highest-scoring gates across every line and phase in ${model.name}.</div>
+      ${topRiskRowsHTML}
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">${model.name} — all lines by risk</div>
+      <div class="panel-sub">Every line in the model, colored by severity, so nothing is hidden even when it's healthy.</div>
+      <div class="risk-grid">${gridHTML}</div>
+    </div>
+
+    <div class="panel">
+      <div class="briefing-header">
+        <div>
+          <div class="panel-title">AI Model Executive Briefing</div>
+          <div class="panel-sub" style="margin-bottom:0;">Synthesizes every line's rollup into one steering-committee-ready summary for ${model.name}</div>
+        </div>
+        <button class="gen-btn" id="genBtn" data-action="generate-model-briefing">Generate Briefing</button>
+      </div>
+      <div id="briefingArea">
+        <div class="briefing-placeholder">No briefing generated yet. Click "Generate Briefing" to have the AI layer synthesize all ${model.lines.length} lines into an executive summary for ${model.name}. Requires the backend function to be deployed — see the deployment note.</div>
+      </div>
+    </div>
+  `;
+}
+
+async function generateModelBriefing(){
+  const model = getActiveModel();
+  const btn = document.getElementById('genBtn');
+  const area = document.getElementById('briefingArea');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  area.innerHTML = `<div class="loading-line"><div class="spinner"></div>Analyzing all lines and drafting briefing…</div>`;
+
+  const rollups = model.lines.map(line => {
+    const r = computeLineRollup(line);
+    return { line: line.name, worst_phase: r.worstPhase, risk_score: Math.round(r.score), risk_level: r.level.label, open_points: r.totalNG, action_logged: !!(r.worstGate && r.worstGate.actionPlan) };
+  });
+  // Pre-compute the single most critical line deterministically in JS (same safeguard
+  // applied to the per-line briefing) so the AI isn't left to infer it from the rollup list.
+  const worstLine = [...rollups].sort((a, b) => b.risk_score - a.risk_score)[0];
+  const allGates = [];
+  model.lines.forEach(line => line.categories.forEach(cat => cat.gates.forEach(g => allGates.push({ line: line.name, phase: cat.title, gate: g.name, risk_score: g._score, risk_level: g._level.label, ng_points_open: g.ng, maker_readiness_pct: g.readiness, schedule: scheduleInfo(g.planned, g.forecast).text, action_plan: g.actionPlan || null, action_due: g.actionDue || null }))));
+  const topRisks = allGates.sort((a,b) => b.risk_score - a.risk_score).slice(0,6);
+
+  const prompt = `You are a senior Technical Program Manager in the automotive industry drafting an executive risk briefing for the model "${model.name}", addressing a steering committee. The model has ${model.lines.length} BIW lines running in parallel, each with its own 4-phase gate sequence. Each line rollup below includes a pre-computed "risk_score" — treat it as ground truth; do not recompute or re-derive it from the top risk items.
+
+PRE-COMPUTED MOST CRITICAL LINE (ground truth — your summary MUST name this line as the primary concern): "${worstLine.line}" at risk score ${worstLine.risk_score} (${worstLine.risk_level}), bottleneck phase "${worstLine.worst_phase}".
+
+Note which top risks have no corrective action logged yet - call those out specifically. Here is the line-level rollup and the top risk items across all lines, as JSON:
+
+Line rollups: ${JSON.stringify(rollups, null, 2)}
+
+Top risk items: ${JSON.stringify(topRisks, null, 2)}
+
+Respond ONLY with valid JSON, no markdown fences, no preamble, in this exact shape:
+{
+  "summary": "2-3 sentence executive summary of overall model health, naming the pre-computed most critical line above",
+  "key_risks": ["risk 1 as a full sentence naming the line, phase, and why it matters - flag if no action is logged", "risk 2", "risk 3"],
+  "recommended_actions": ["action 1 as a full sentence, tied to a specific line", "action 2", "action 3"]
+}`;
+
+  try {
+    const response = await fetch(BACKEND_ENDPOINT, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+    });
+    if(!response.ok){ throw new Error(`Backend returned status ${response.status}. Is the function deployed? See the deployment note.`); }
+    const data = await response.json();
+    if(data.error){ throw new Error(data.error); }
+    const textBlock = data.content.find(b => b.type === 'text');
+    if(!textBlock){ throw new Error('No text content returned'); }
+    const parsed = JSON.parse(textBlock.text.replace(/```json|```/g, '').trim());
+    area.innerHTML = `
+      <div class="briefing-content">
+        <h4>Executive Summary</h4><p>${parsed.summary}</p>
+        <h4>Key Risks</h4><ul>${parsed.key_risks.map(r => `<li>${r}</li>`).join('')}</ul>
+        <h4>Recommended Actions</h4><ol>${parsed.recommended_actions.map(a => `<li>${a}</li>`).join('')}</ol>
+      </div>`;
+  } catch(err){
+    area.innerHTML = `<div class="error-line">Briefing generation failed: ${err.message}</div>`;
+    console.error('Briefing error:', err);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate Briefing';
+  }
+}
+/* ---------- access tab ---------- */
+function accessHTML(model){
+  const lineOptions = ["All Lines", ...model.lines.map(l => l.name)];
+  const rows = model.access.map((p, idx) => `
+    <tr>
+      <td style="min-width:170px;"><input class="field-input" data-access="true" data-idx="${idx}" data-field="name" value="${escapeAttr(p.name)}" placeholder="Full name"></td>
+      <td style="min-width:160px;">
+        <select class="field-input" data-access="true" data-idx="${idx}" data-field="role">
+          ${ROLE_OPTIONS.map(o => `<option value="${o}" ${p.role===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </td>
+      <td style="min-width:170px;">
+        <select class="field-input" data-access="true" data-idx="${idx}" data-field="scope">
+          ${lineOptions.map(o => `<option value="${o}" ${p.scope===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </td>
+      <td style="min-width:200px;"><input class="field-input" data-access="true" data-idx="${idx}" data-field="email" value="${escapeAttr(p.email)}" placeholder="name@marutisuzuki.com"></td>
+      <td style="min-width:150px; white-space:nowrap;">
+        ${p.email ? `<a class="action-link" href="mailto:${escapeAttr(p.email)}" title="Send an Outlook email">Email</a>` : `<span class="action-link disabled">Email</span>`}
+        ${p.email ? `<a class="action-link" href="https://teams.microsoft.com/l/chat/0/0?users=${encodeURIComponent(p.email)}" target="_blank" rel="noopener" title="Start a Teams chat">Teams</a>` : `<span class="action-link disabled">Teams</span>`}
+      </td>
+      <td><button class="remove-btn" data-action="remove-access" data-idx="${idx}" title="Remove">×</button></td>
+    </tr>
+  `).join('');
+
+  return `
+    <div class="panel">
+      <div class="panel-title">${model.name} — Access & Ownership</div>
+      <div class="panel-sub">Add each colleague's work email to enable one-click Email and Teams contact. Assignments here drive the Owner shown on the Dashboard and on each line's page.</div>
+      <div class="table-scroll">
+        <table class="access-table">
+          <thead><tr><th>Name</th><th>Role</th><th>Scope</th><th>Email</th><th>Contact</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <div class="add-row-wrap"><button class="add-row-btn" data-action="add-access">+ Add person</button></div>
+    </div>
+  `;
+}
+function addAccessPerson(){
+  const model = getActiveModel();
+  model.access.push({ name:"", role:"Line In-Charge", scope:"All Lines", email:"" });
+  renderViewArea();
+}
+function removeAccessPerson(idx){
+  const model = getActiveModel();
+  model.access.splice(idx, 1);
+  renderViewArea();
+}
+
+/* ---------- line detail view ---------- */
+function formulaPanelHTML(){
+  return `
+    <details class="formula-panel">
+      <summary>How risk scores are calculated</summary>
+      <div class="formula-body">
+        <p><strong>Own score</strong> = schedule slip + NG points + readiness gap + critical bonus (capped at 100):</p>
+        <table>
+          <tr><th>Factor</th><th>Formula</th><th>Cap</th></tr>
+          <tr><td>Schedule slip</td><td>delay days × 3 — only counts if delay exceeds the phase threshold below</td><td>30</td></tr>
+          <tr><td>NG points</td><td>NG count × 4 — uses "NG till planned date" instead of current NG if it's non-zero</td><td>30</td></tr>
+          <tr><td>Readiness gap</td><td>(100 − readiness%) × 0.3</td><td>30</td></tr>
+          <tr><td>Critical gate</td><td>flat bonus if marked critical</td><td>10</td></tr>
+        </table>
+        <p><strong>Delay thresholds by phase</strong> — a delay only counts toward the score if it exceeds this many days:</p>
+        <table>
+          <tr><th>Phase</th><th>Threshold</th></tr>
+          <tr><td>BIW Panel Build Study</td><td>5 days</td></tr>
+          <tr><td>Commercial Plan</td><td>5 days</td></tr>
+          <tr><td>Design Start to Buy-off</td><td>3 days</td></tr>
+          <tr><td>Line Installation to Production</td><td>2 days</td></tr>
+        </table>
+        <p><strong>Cascade</strong> — each gate also inherits 30% of the previous gate's total score, so an upstream problem visibly inflates downstream gates.</p>
+        <p><strong>Risk bands</strong> — the total score (0–100) maps to a label as follows:</p>
+        <table>
+          <tr><th>Score</th><th>Label</th></tr>
+          <tr><td>0–30</td><td>Low</td></tr>
+          <tr><td>31–60</td><td>Medium</td></tr>
+          <tr><td>61–80</td><td>High</td></tr>
+          <tr><td>81–100</td><td>Critical</td></tr>
+        </table>
+        <p>Click any gate's risk score gauge below to see the exact numbers used for that gate.</p>
+      </div>
+    </details>
+  `;
+}
+
+function fieldRow(line, cat, gate, idx){
+  const sched = scheduleInfo(gate.planned, gate.forecast);
+  const key = `${line.id}-${cat.key}-${idx}`;
+  const isExpanded = expandedGateKeys.has(key);
+  const mainRow = `
+    <tr>
+      <td class="mono"><span class="stage-num">${String(idx+1).padStart(2,'0')}</span></td>
+      <td class="col-name"><input class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="name" value="${escapeAttr(gate.name)}"></td>
+      <td class="col-owner"><input class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="owner" value="${escapeAttr(gate.owner)}"></td>
+      <td class="col-date"><input type="date" class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="planned" value="${gate.planned}"></td>
+      <td class="col-date"><input type="date" class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="forecast" value="${gate.forecast}"></td>
+      <td id="sched-${cat.key}-${idx}"><span class="risk-badge ${sched.cls}-bg">${sched.text}</span></td>
+      <td><input type="number" min="0" class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="ng" value="${gate.ng}"></td>
+      <td><input type="number" min="0" class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="ngPlanned" value="${gate.ngPlanned || 0}" title="NG points still open as of the planned date — overrides current NG in the risk score when non-zero"></td>
+      <td>
+        <div class="pct-wrap">
+          <input type="number" min="0" max="100" step="5" class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="readiness" value="${gate.readiness}">
+          <span class="mono" style="color:var(--text-secondary); font-size:12px;">%</span>
+        </div>
+      </td>
+      <td>
+        <select class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="critical">
+          <option value="Yes" ${gate.critical?'selected':''}>Yes</option>
+          <option value="No" ${!gate.critical?'selected':''}>No</option>
+        </select>
+      </td>
+      <td class="col-action"><input class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="actionPlan" value="${escapeAttr(gate.actionPlan||'')}" placeholder="Corrective action"></td>
+      <td class="col-date"><input type="date" class="field-input" data-cat="${cat.key}" data-idx="${idx}" data-field="actionDue" value="${gate.actionDue||''}"></td>
+      <td id="gauge-${cat.key}-${idx}"><div class="gauge-wrap" data-action="toggle-breakdown" data-cat="${cat.key}" data-idx="${idx}" title="Click for score breakdown">${gaugeSVG(gate._score, colorMap[gate._level.cls])}${gate._inherited > 5 ? `<span class="cascade-flag">+${gate._inherited} cascade</span>` : ''}</div></td>
+      <td id="status-${cat.key}-${idx}"><span class="risk-badge ${gate._level.cls}-bg">${gate._level.label}</span></td>
+      <td><button class="remove-btn" data-action="remove-gate" data-cat="${cat.key}" data-idx="${idx}" title="Remove gate">×</button></td>
+    </tr>
+  `;
+  if(!isExpanded) return mainRow;
+  const breakdownRow = `
+    <tr class="breakdown-row">
+      <td colspan="15">
+        <div class="breakdown-grid">
+          <div class="breakdown-item"><div class="bl">Schedule slip</div><div class="bv">${gate._slip}d ${gate._slip >= 0 ? 'delay' : 'ahead'} (threshold ${gate._slipThreshold}d) → ${gate._slipCounts ? 'counted' : 'not counted'}: +${gate._slipScore}</div></div>
+          <div class="breakdown-item"><div class="bl">NG points used</div><div class="bv">${gate._ngForRisk} ${gate.ngPlanned ? '(from NG Till Planned)' : '(from current NG)'} → +${gate._ngScore}</div></div>
+          <div class="breakdown-item"><div class="bl">Readiness gap</div><div class="bv">${gate.readiness}% ready → +${gate._readyScore}</div></div>
+          <div class="breakdown-item"><div class="bl">Critical bonus</div><div class="bv">${gate.critical ? 'Yes' : 'No'} → +${gate._criticalWeight}</div></div>
+          <div class="breakdown-item"><div class="bl">Own score</div><div class="bv">${gate._ownScore}</div></div>
+          <div class="breakdown-item"><div class="bl">Inherited from previous gate</div><div class="bv">+${gate._inherited}</div></div>
+          <div class="breakdown-item"><div class="bl">Total score</div><div class="bv" style="color:${colorMap[gate._level.cls]}">${gate._score}</div></div>
+        </div>
+      </td>
+    </tr>
+  `;
+  return mainRow + breakdownRow;
+}
+
+function lineViewHTML(model, line){
+  computeCascadeFor(line.categories);
+  const owner = getLineOwner(model, line.name);
+  const catPanels = line.categories.map(cat => {
+    const catScore = Math.max(...cat.gates.map(g => g._score), 0);
+    const catLevel = riskLevel(catScore);
+    const catNG = cat.gates.reduce((a,g)=>a+(g.ng||0),0);
+    const rows = cat.gates.map((g,idx) => fieldRow(line, cat, g, idx)).join('');
+    return `
+      <div class="panel category-panel" style="border-left-color:${cat.color}">
+        <div class="category-header">
+          <div class="category-title-wrap">
+            <div class="cat-eyebrow" style="color:${cat.color}">${cat.eyebrow}</div>
+            <h3>${cat.title}</h3>
+          </div>
+          <div class="cat-risk-pill" id="catpill-${cat.key}">
+            ${gaugeSVG(catScore, colorMap[catLevel.cls], 40)}
+            <div>
+              <span class="risk-badge ${catLevel.cls}-bg">${catLevel.label} phase risk</span>
+              <div style="font-size:11px; color:var(--text-secondary); font-family:var(--font-mono); margin-top:4px;">${catNG} open point${catNG===1?'':'s'} · ${cat.gates.length} gate${cat.gates.length===1?'':'s'}</div>
+            </div>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>#</th><th>Gate</th><th>Maker / Owner</th><th>Planned</th><th>Forecast</th><th>Schedule</th><th>NG Pts</th><th>NG Till Planned</th><th>Readiness</th><th>Critical</th><th>Action</th><th>Action Due</th><th>Risk Score</th><th>Status</th><th></th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        <div class="add-row-wrap"><button class="add-row-btn" data-action="add-gate" data-cat="${cat.key}">+ Add gate to this phase</button></div>
+      </div>
+    `;
+  }).join('');
+
+  const allGates = line.categories.flatMap(c => c.gates);
+  const critical = allGates.filter(g => g._level.label === 'Critical').length;
+  const high = allGates.filter(g => g._level.label === 'High').length;
+  const med = allGates.filter(g => g._level.label === 'Medium').length;
+  const low = allGates.filter(g => g._level.label === 'Low').length;
+  const totalNG = allGates.reduce((a,g)=>a+(g.ng||0),0);
+
+  return `
+    ${owner ? `<div class="line-owner-badge">Line In-Charge: <strong>${owner.name}</strong> (${owner.role})</div>` : `<div class="line-owner-badge" style="color:var(--risk-med);">No owner assigned — set one in the Access tab</div>`}
+    ${formulaPanelHTML()}
+    <div class="summary-strip" id="summaryStrip">
+      <div class="stat"><div class="num" style="color:var(--risk-critical)">${critical}</div><div class="lab">Critical risk gates</div></div>
+      <div class="stat"><div class="num" style="color:var(--risk-high)">${high}</div><div class="lab">High risk gates</div></div>
+      <div class="stat"><div class="num" style="color:var(--risk-med)">${med}</div><div class="lab">Medium risk gates</div></div>
+      <div class="stat"><div class="num" style="color:var(--risk-low)">${low}</div><div class="lab">On track gates</div></div>
+      <div class="stat"><div class="num">${totalNG}</div><div class="lab">Total NG points open</div></div>
+    </div>
+    <div id="categoryPanels" style="display:flex; flex-direction:column; gap:24px; margin-top:20px;">${catPanels}</div>
+    <div class="panel" style="margin-top:20px;">
+      <div class="briefing-header">
+        <div>
+          <div class="panel-title">AI Executive Risk Briefing — ${line.name}</div>
+          <div class="panel-sub" style="margin-bottom:0;">Generates a leadership-ready summary from this line's current gate data</div>
+        </div>
+        <button class="gen-btn" id="genBtn" data-action="generate-briefing">Generate Briefing</button>
+      </div>
+      <div id="briefingArea">
+        <div class="briefing-placeholder">No briefing generated yet. Edit the gate data above as needed, then click "Generate Briefing". Requires the backend function to be deployed.</div>
+      </div>
+    </div>
+  `;
+}
+
+function updateLineDisplays(line){
+  computeCascadeFor(line.categories);
+  line.categories.forEach(cat => {
+    cat.gates.forEach((g, idx) => {
+      const gaugeCell = document.getElementById(`gauge-${cat.key}-${idx}`);
+      const statusCell = document.getElementById(`status-${cat.key}-${idx}`);
+      const schedCell = document.getElementById(`sched-${cat.key}-${idx}`);
+      if(gaugeCell) gaugeCell.innerHTML = `<div class="gauge-wrap" data-action="toggle-breakdown" data-cat="${cat.key}" data-idx="${idx}" title="Click for score breakdown">${gaugeSVG(g._score, colorMap[g._level.cls])}${g._inherited > 5 ? `<span class="cascade-flag">+${g._inherited} cascade</span>` : ''}</div>`;
+      if(statusCell) statusCell.innerHTML = `<span class="risk-badge ${g._level.cls}-bg">${g._level.label}</span>`;
+      if(schedCell){ const sched = scheduleInfo(g.planned, g.forecast); schedCell.innerHTML = `<span class="risk-badge ${sched.cls}-bg">${sched.text}</span>`; }
+    });
+    const catScore = Math.max(...cat.gates.map(g => g._score), 0);
+    const catLevel = riskLevel(catScore);
+    const catNG = cat.gates.reduce((a,g)=>a+(g.ng||0),0);
+    const pill = document.getElementById(`catpill-${cat.key}`);
+    if(pill){
+      pill.innerHTML = `
+        ${gaugeSVG(catScore, colorMap[catLevel.cls], 40)}
+        <div>
+          <span class="risk-badge ${catLevel.cls}-bg">${catLevel.label} phase risk</span>
+          <div style="font-size:11px; color:var(--text-secondary); font-family:var(--font-mono); margin-top:4px;">${catNG} open point${catNG===1?'':'s'} · ${cat.gates.length} gate${cat.gates.length===1?'':'s'}</div>
+        </div>`;
+    }
+  });
+  const allGates = line.categories.flatMap(c => c.gates);
+  const critical = allGates.filter(g => g._level.label === 'Critical').length;
+  const high = allGates.filter(g => g._level.label === 'High').length;
+  const med = allGates.filter(g => g._level.label === 'Medium').length;
+  const low = allGates.filter(g => g._level.label === 'Low').length;
+  const totalNG = allGates.reduce((a,g)=>a+(g.ng||0),0);
+  const strip = document.getElementById('summaryStrip');
+  if(strip){
+    strip.innerHTML = `
+      <div class="stat"><div class="num" style="color:var(--risk-critical)">${critical}</div><div class="lab">Critical risk gates</div></div>
+      <div class="stat"><div class="num" style="color:var(--risk-high)">${high}</div><div class="lab">High risk gates</div></div>
+      <div class="stat"><div class="num" style="color:var(--risk-med)">${med}</div><div class="lab">Medium risk gates</div></div>
+      <div class="stat"><div class="num" style="color:var(--risk-low)">${low}</div><div class="lab">On track gates</div></div>
+      <div class="stat"><div class="num">${totalNG}</div><div class="lab">Total NG points open</div></div>`;
+  }
+}
+
+function toggleBreakdown(catKey, idx){
+  const line = getActiveLine();
+  if(!line) return;
+  const key = `${line.id}-${catKey}-${idx}`;
+  if(expandedGateKeys.has(key)) expandedGateKeys.delete(key);
+  else expandedGateKeys.add(key);
+  renderViewArea();
+}
+
+function addGate(catKey){
+  const line = getActiveLine();
+  const cat = line.categories.find(c => c.key === catKey);
+  const today = new Date().toISOString().slice(0,10);
+  cat.gates.push({ name:"New Gate", owner:"", planned: today, forecast: today, ng:0, ngPlanned:0, readiness:100, critical:false, actionPlan:"", actionDue:"" });
+  renderViewArea();
+}
+function removeGate(catKey, idx){
+  const line = getActiveLine();
+  const cat = line.categories.find(c => c.key === catKey);
+  cat.gates.splice(idx, 1);
+  renderViewArea();
+}
+/* ---------- event delegation ---------- */
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const action = el.dataset.action;
+  if(action !== 'delete-model' && pendingDeleteId){ pendingDeleteId = null; renderModelTabs(); }
+  if(action === 'add-model') addModel();
+  else if(action === 'delete-model') deleteModel(el.dataset.modelId);
+  else if(action === 'select-line') selectLine(el.dataset.lineId);
+  else if(action === 'add-gate') addGate(el.dataset.cat);
+  else if(action === 'remove-gate') removeGate(el.dataset.cat, parseInt(el.dataset.idx));
+  else if(action === 'toggle-breakdown') toggleBreakdown(el.dataset.cat, parseInt(el.dataset.idx));
+  else if(action === 'add-access') addAccessPerson();
+  else if(action === 'remove-access') removeAccessPerson(parseInt(el.dataset.idx));
+  else if(action === 'generate-briefing') generateBriefing();
+  else if(action === 'generate-model-briefing') generateModelBriefing();
+  else if(action === 'save-snapshot') saveSnapshot();
+});
+
+document.addEventListener('focusin', function(e){
+  if(e.target.dataset && e.target.dataset.action === 'rename-model'){
+    selectModel(e.target.dataset.modelId);
+  }
+});
+
+document.addEventListener('input', handleFieldChange);
+document.addEventListener('change', handleFieldChange);
+document.addEventListener('input', handleAccessFieldChange);
+document.addEventListener('change', handleAccessFieldChange);
+
+function handleFieldChange(e){
+  if(e.target.dataset && e.target.dataset.action === 'rename-model'){
+    renameModel(e.target.dataset.modelId, e.target.value);
+    return;
+  }
+  if(!e.target.classList || !e.target.classList.contains('field-input')) return;
+  if(e.target.dataset.cat === undefined) return;
+  const line = getActiveLine();
+  if(!line) return;
+  const catKey = e.target.dataset.cat;
+  const idx = parseInt(e.target.dataset.idx);
+  const field = e.target.dataset.field;
+  const cat = line.categories.find(c => c.key === catKey);
+  if(!cat) return;
+  const gate = cat.gates[idx];
+  if(!gate) return;
+  let val = e.target.value;
+  if(field === 'ng' || field === 'ngPlanned') val = parseInt(val) || 0;
+  if(field === 'readiness') val = Math.max(0, Math.min(100, parseInt(val) || 0));
+  if(field === 'critical') val = (val === 'Yes');
+  gate[field] = val;
+  updateLineDisplays(line);
+}
+
+function handleAccessFieldChange(e){
+  if(e.target.dataset.access !== 'true') return;
+  const model = getActiveModel();
+  const idx = parseInt(e.target.dataset.idx);
+  const field = e.target.dataset.field;
+  if(!model.access[idx]) return;
+  model.access[idx][field] = e.target.value;
+  if(e.type === 'change') renderViewArea();
+}
+
+async function generateBriefing(){
+  const line = getActiveLine();
+  const btn = document.getElementById('genBtn');
+  const area = document.getElementById('briefingArea');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  area.innerHTML = `<div class="loading-line"><div class="spinner"></div>Analyzing gate data and drafting briefing…</div>`;
+
+  computeCascadeFor(line.categories);
+
+  // Pre-compute each phase's own risk score (max gate score within that phase, matching
+  // the number shown on-screen in the phase pill) and the single highest-scoring phase.
+  // This is computed deterministically in JS rather than left for the AI to infer from
+  // raw gate-level JSON, which is what previously caused the briefing to occasionally
+  // name the wrong phase as the bottleneck.
+  const phaseScores = line.categories.map(cat => {
+    const phaseScore = Math.round(Math.max(...cat.gates.map(g => g._score), 0));
+    return { phase: cat.title, phase_risk_score: phaseScore, phase_risk_level: riskLevel(phaseScore).label };
+  });
+  const bottleneck = phaseScores.reduce((a, c) => c.phase_risk_score > a.phase_risk_score ? c : a, phaseScores[0]);
+
+  const payload = line.categories.map((cat, i) => ({
+    phase: cat.title,
+    phase_risk_score: phaseScores[i].phase_risk_score,
+    phase_risk_level: phaseScores[i].phase_risk_level,
+    gates: cat.gates.map((g, idx) => ({
+      gate_number: idx + 1, gate: g.name, maker_or_owner: g.owner, planned: g.planned, forecast: g.forecast,
+      schedule: scheduleInfo(g.planned, g.forecast).text, delay_counted_in_risk_score: g._slipCounts,
+      ng_points_open: g.ng, ng_points_till_planned_date: g.ngPlanned, ng_used_for_scoring: g._ngForRisk,
+      maker_readiness_pct: g.readiness, critical_gate: g.critical,
+      action_plan: g.actionPlan || null, action_due: g.actionDue || null,
+      own_risk_score: g._ownScore, inherited_cascade_risk: g._inherited, total_risk_score: g._score, risk_level: g._level.label
+    }))
+  }));
+
+  const prompt = `You are a senior Technical Program Manager in the automotive industry drafting an executive risk briefing for BIW line "${line.name}", addressing a steering committee. The line runs through 4 phases with delay thresholds and NG-till-planned-date overrides already applied to the scores. Each phase object below includes a pre-computed "phase_risk_score" (the highest gate score within that phase) and "phase_risk_level" — treat these as ground truth; do not recompute or re-derive them from the gate list.
+
+PRE-COMPUTED BOTTLENECK (ground truth — your summary MUST name this phase as the current bottleneck): "${bottleneck.phase}" at a phase risk score of ${bottleneck.phase_risk_score} (${bottleneck.phase_risk_level}).
+
+Flag any high, critical, or medium risk gate that has no corrective action logged. Here is the scored data grouped by phase, as JSON:
+
+${JSON.stringify(payload, null, 2)}
+
+Respond ONLY with valid JSON, no markdown fences, no preamble, in this exact shape:
+{
+  "summary": "2-3 sentence executive summary of this line's health, naming the pre-computed bottleneck phase above",
+  "key_risks": ["risk 1 as a full sentence naming the phase, gate, maker, and why it matters - note if no action is logged", "risk 2", "risk 3"],
+  "recommended_actions": ["action 1 as a full sentence, tied to a specific phase", "action 2", "action 3"]
+}`;
+
+  try {
+    const response = await fetch(BACKEND_ENDPOINT, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] })
+    });
+    if(!response.ok){ throw new Error(`Backend returned status ${response.status}. Is the function deployed? See the deployment note.`); }
+    const data = await response.json();
+    if(data.error){ throw new Error(data.error); }
+    const textBlock = data.content.find(b => b.type === 'text');
+    if(!textBlock){ throw new Error('No text content returned'); }
+    const parsed = JSON.parse(textBlock.text.replace(/```json|```/g, '').trim());
+    area.innerHTML = `
+      <div class="briefing-content">
+        <h4>Executive Summary</h4><p>${parsed.summary}</p>
+        <h4>Key Risks</h4><ul>${parsed.key_risks.map(r => `<li>${r}</li>`).join('')}</ul>
+        <h4>Recommended Actions</h4><ol>${parsed.recommended_actions.map(a => `<li>${a}</li>`).join('')}</ol>
+      </div>`;
+  } catch(err){
+    area.innerHTML = `<div class="error-line">Briefing generation failed: ${err.message}</div>`;
+    console.error('Briefing error:', err);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Generate Briefing';
+  }
+}
+
+renderApp();
+</script>
+
+</body>
+</html>
