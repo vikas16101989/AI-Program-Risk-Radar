@@ -2,6 +2,8 @@
 
 AI-enabled program risk management and executive decision-support platform for automotive BIW programs.
 
+![AI Program Risk Radar Dashboard](dashboard.jpg)
+
 ## 🚀 Live Demo
 
 https://ai-program-model-risk-radar.netlify.app
@@ -67,6 +69,8 @@ The AI layer converts structured program risk data into:
 - Recommended actions
 
 The briefing is designed for steering-committee-level communication rather than raw technical data.
+
+![AI Executive Risk Briefing](ai-executive-briefing.jpg)
 
 ---
 
